@@ -46,3 +46,17 @@ id - Student id number
 38 facebook - whether or not a student linked their Facebook account to the online system  
 39 time.in.session - how much time a student spent in online sessions  
 40 av.seconds.per.task - how many seconds a student spent on average in a task  
+
+### student-activity.csv
+====================
+
+id - student id number
+hockey - student plays hockey
+soccer - student plays soccer
+dance - student competes in dance competition
+a.football - student plays American football
+comm.service - student is involved in community service
+choir - student sings in choir
+tennis - student plays tennis
+table.tennis - student plays table tennis
+running - student runs comptetitively

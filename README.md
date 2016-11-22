@@ -57,6 +57,6 @@ dance - student competes in dance competition
 a.football - student plays American football  
 comm.service - student is involved in community service  
 choir - student sings in choir  
-tennis - student plays tennis
-table.tennis - student plays table tennis
-running - student runs comptetitively
+tennis - student plays tennis  
+table.tennis - student plays table tennis  
+running - student runs comptetitively  

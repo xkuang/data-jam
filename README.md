@@ -4,7 +4,7 @@
 ### student-data.csv
 ====================
 
-id - Student id number
+id - Student id number  
 1 school - student's school (binary: "GP" - Gabriel Pereira or "MS" - Mousinho da Silveira)  
 2 sex - student's sex (binary: "F" - female or "M" - male)  
 3 age - student's age (numeric: from 15 to 22)  

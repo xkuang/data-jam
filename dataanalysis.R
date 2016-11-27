@@ -50,7 +50,7 @@ plot(DE1$school,DE1$scorechange3)
 plot(DE1$sex,DE1$avatar.requests)
 plot(DE1$sex,DE1$customize.character)
 
-DE2 <- dplyr::select(DE1,G1,G2,G3,scorechange1, scorechange2,scorechange3,diffscorechange,age,Medu,Fedu,traveltime,studytime,failures,famrel,freetime,goout,Dalc,Walc,health,absences,forum.posts,levels.complete,avatar.requests,teacher.requests,customize.character,time.in.session,av.seconds.per.task,school.1,gender,citystatus,famsize.1,Pstatus.1,Mjob.1,Fjob.1,schoolsup.1,famsup.1)
+DE2 <- dplyr::select(DE1,G1,G2,G3,age,Medu,Fedu,traveltime,studytime,failures,famrel,freetime,goout,Dalc,Walc,health,absences,forum.posts,levels.complete,avatar.requests,teacher.requests,customize.character,time.in.session,av.seconds.per.task,school.1,gender,citystatus,famsize.1,Pstatus.1,Mjob.1,Fjob.1,schoolsup.1,famsup.1)
 mydata <- DE2
 
 # Model Based Clustering
@@ -92,8 +92,6 @@ corrplot(COR, order="AOE", method="circle", tl.pos="lt", type="upper",
          addCoef.col="black", addCoefasPercent = TRUE,
          sig.level=0.50, insig = "blank")
 
-
-
 # Multiple Linear Regression Example 
 fit1 <- lm(G3 ~ age, data=mydata)
 fit2 <- lm(G3 ~ G2+age, data=mydata)
@@ -129,52 +127,49 @@ anova(fit1, fit2,fit3,fit4,fit5,fit6,fit7,fit8,fit9)
 #---
 #  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
-Sample <- dplyr::sample_frac(DE1, 0.1, replace = TRUE)
+Sample <- dplyr::sample_frac(DE1, 0.5, replace = TRUE)
 #based on regression
-c.tree1 <- rpart(G3 ~ G1 + G2 + age + failures + absences + traveltime + health + schoolsup.1, method="class", data=Sample,control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.001))
-post(c.tree1, file = "tree.ps", title = "tree")
-DE1$predict1 <- predict(c.tree1, DE1, type = "class")
+c.treeR <- rpart(G3 ~ G1 + G2 + age + failures + absences + traveltime + health + schoolsup.1, method="class", data=Sample,control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.001))
+post(c.treeR, file = "tree.ps", title = "tree")
+DE1$predict1 <- predict(c.treeR, DE1, type = "class")
 mismatchR <- dplyr::filter(DE1, G3 != predict1)
 
 #based on correlation
-Sample <- dplyr::sample_frac(DE1, 0.1, replace = TRUE)
-c.tree2 <- rpart(G3 ~ G1 + G2 + failures + absences + Walc + avatar.requests +  schoolsup.1 + studytime + Fedu + teacher.requests, method="class", data=Sample,control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.001))
-post(c.tree2, file = "tree.ps", title = "tree")
-DE1$predict2 <- predict(c.tree2, DE1, type = "class")
+c.treeC <- rpart(G3 ~ G1 + G2 + failures + absences + Walc + avatar.requests +  schoolsup.1 + studytime + Fedu + teacher.requests, method="class", data=Sample,control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.001))
+post(c.treeC, file = "tree.ps", title = "tree")
+DE1$predict2 <- predict(c.treeC, DE1, type = "class")
 mismatchC <- dplyr::filter(DE1, G3 != predict2)
 
 #based on clustering
-Sample <- dplyr::sample_frac(DE1, 0.1, replace = TRUE)
-c.tree3 <- rpart(G3 ~ G1 + G2 + age+ failures + absences + forum.posts + customize.character + Walc+ Fjob.1+ schoolsup.1 + studytime + Fedu + teacher.requests, method="class", data=Sample,control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.001))
-post(c.tree3, file = "tree.ps", title = "tree")
-DE1$predict3 <- predict(c.tree3, DE1, type = "class")
+c.treeK <- rpart(G3 ~ G1 + G2 + age+ failures + absences + forum.posts + customize.character + Walc+ Fjob.1+ schoolsup.1 + studytime + Fedu + teacher.requests, method="class", data=Sample,control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.001))
+post(c.treeK, file = "tree.ps", title = "tree")
+DE1$predict3 <- predict(c.treeK, DE1, type = "class")
 mismatchK <- dplyr::filter(DE1, G3 != predict3)
-
 
 #based on clustering and PCA
 DE4 <- dplyr::select(DE1,G1,G2,scorechange1,age,Medu,Fedu,traveltime,studytime,failures,famrel,freetime,goout,Dalc,Walc,health,absences,forum.posts,levels.complete,avatar.requests,teacher.requests,customize.character,time.in.session,av.seconds.per.task,school.1,gender,citystatus,famsize.1,Pstatus.1,Mjob.1,Fjob.1,schoolsup.1,famsup.1)
 
-fit1 <- kmeans(mydata, 3)
-clusplot(mydata, fit1$cluster, color=TRUE, shade=TRUE,labels=2, lines=0)
-plotcluster(mydata, fit1$cluster)
-DE5 <- cbind(DE4, fit1$cluster)
+#fit1 <- kmeans(mydata, 3)
+#clusplot(mydata, fit1$cluster, color=TRUE, shade=TRUE,labels=2, lines=0)
+#plotcluster(mydata, fit1$cluster)
+#DE5 <- cbind(DE4, fit1$cluster)
 
 fit2 <- kmeans(mydata, 2)
 clusplot(mydata, fit2$cluster, color=TRUE, shade=TRUE,labels=2, lines=0)
 plotcluster(mydata, fit2$cluster)
 DE5 <- cbind(DE4, fit2$cluster)
 
-C1 <- dplyr::filter(DE3,fit2$cluster == 1)
-C2 <- dplyr::filter(DE3,fit2$cluster == 2)
+C1 <- dplyr::filter(DE5,fit2$cluster == 1)
+C2 <- dplyr::filter(DE5,fit2$cluster == 2)
 
-F1 <- dplyr::filter(DE3,fit1$cluster == 1)
-F2 <- dplyr::filter(DE3,fit1$cluster == 2)
-F3 <- dplyr::filter(DE3,fit1$cluster == 3)
+#F1 <- dplyr::filter(DE3,fit1$cluster == 1)
+#F2 <- dplyr::filter(DE3,fit1$cluster == 2)
+#F3 <- dplyr::filter(DE3,fit1$cluster == 3)
 
-mydata <- DE4
 # have PCA on the variables
 #for C1
-C1p <- scale(C1, center = TRUE)
+C1p <- dplyr::select(C1, 1:32)
+C1p <- scale(C1p, center = TRUE)
 pca1 <- prcomp(C1p, scale = TRUE)
 #plot the Principle components
 pca1$sdev
@@ -198,18 +193,21 @@ pca1$rotation
 loadingsC1 <- abs(pca1$rotation) #abs() will make all eigenvectors positive
 
 #in each cluster, take 50% data to build prediction tree
-C1s <- dplyr::sample_frac(C1, 0.1, replace = TRUE)
-C2s <- dplyr::sample_frac(C2, 0.1, replace = TRUE)
+C1ss <- dplyr::filter(DE3,fit2$cluster == 1)
+C2ss <- dplyr::filter(DE3,fit2$cluster == 2)
+C1s <- dplyr::sample_frac(C1ss, 0.5, replace = TRUE)
+C2s <- dplyr::sample_frac(C2ss, 0.5, replace = TRUE)
 
 #build decision tree based on cluster (> 0.1)
-c.tree1 <- rpart(G3 ~ G1+ G2 teacher.requests+Medu+avatar.requests+Fedu+failures+Mjob.1+Dalc+levels.complete+absences, method="class", data=C1s, control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.0001))
-printcp(c.tree1)
-post(c.tree1, file = "tree1.ps", title = "C1 tree1")
-C1$predict1 <- predict(c.tree1, C1, type = "class")
-mismatch1 <- dplyr::filter(C1, G3 != predict1)
+c.treeP1 <- rpart(G3 ~ G1+ G2+failures+Medu+teacher.requests+Fedu+avatar.requests+school.1+traveltime+Walc+Dalc+studytime+Mjob.1+citystatus+age+goout+forum.posts, method="class", data=C1s, control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.0001))
+printcp(c.treeP1)
+post(c.treeP1, file = "tree1.ps", title = "C1 tree1")
+C1ss$predict1 <- predict(c.treeP1, C1ss, type = "class")
+mismatch1 <- dplyr::filter(C1ss, G3 != predict1)
 
 #for C2
-C2p <- scale(C2, center = TRUE)
+C2p <- dplyr::select(C2, 1:32)
+C2p <- scale(C2p, center = TRUE)
 pca2 <- prcomp(C2p, scale = TRUE)
 #plot the Principle components
 pca2$sdev
@@ -232,10 +230,42 @@ pca2$rotation
 #Examine the eigenvectors, notice that they are a little difficult to interpret. It is much easier to make sense of them if we make them proportional within each component
 loadingsC2 <- abs(pca2$rotation) #abs() will make all eigenvectors positive
 
-c.tree2 <- rpart(G3 ~ G1+ G2+teacher.requests+Medu+avatar.requests+Fedu+failures+Mjob.1+Dalc+levels.complete+absences+Walc+schoolsup.1+goout+studytime+Fjob.1+age, method="class", data=C2s, control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.0001))
-printcp(c.tree2)
-post(c.tree2, file = "tree2.ps", title = "C2 tree2")
-C2$predict1 <- predict(c.tree2, C2, type = "class")
-mismatch2 <- dplyr::filter(C2, G3 != predict1)
+c.treeP2 <- rpart(G3 ~ G1+ G2+teacher.requests+Medu+Fedu+Mjob.1+failures+famsup.1+customize.character+avatar.requests+levels.complete+absences+Dalc+Walc+schoolsup.1+health+studytime+time.in.session+traveltime, method="class", data=C2s, control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.0001))
+printcp(c.treeP2)
+post(c.treeP2, file = "tree2.ps", title = "C2 tree2")
+C2ss$predict1 <- predict(c.treeP2, C2ss, type = "class")
+mismatch2 <- dplyr::filter(C2ss, G3 != predict1)
 
+#=======================#
 
+Sample <- dplyr::sample_frac(DE1, 0.5, replace = TRUE)
+#based on regression
+c.treeR <- rpart(G3 ~ G1 + G2 + age + failures + absences + traveltime + health + schoolsup.1, method="class", data=Sample,control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.001))
+post(c.treeR, file = "treeR.ps", title = "tree")
+DE1$predict1 <- predict(c.treeR, DE1, type = "class")
+mismatchR <- dplyr::filter(DE1, G3 != predict1)
+
+#based on correlation
+c.treeC <- rpart(G3 ~ G1 + G2 + failures + absences + Walc + avatar.requests +  schoolsup.1 + studytime + Fedu + teacher.requests, method="class", data=Sample,control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.001))
+post(c.treeC, file = "treeC.ps", title = "tree")
+DE1$predict2 <- predict(c.treeC, DE1, type = "class")
+mismatchC <- dplyr::filter(DE1, G3 != predict2)
+
+#based on clustering
+c.treeK <- rpart(G3 ~ G1 + G2 + age+ failures + absences + forum.posts + customize.character + Walc+ Fjob.1+ schoolsup.1 + studytime + Fedu + teacher.requests, method="class", data=Sample,control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.001))
+post(c.treeK, file = "treeK.ps", title = "tree")
+DE1$predict3 <- predict(c.treeK, DE1, type = "class")
+mismatchK <- dplyr::filter(DE1, G3 != predict3)
+
+#based on clustering-PCA-correlation
+c.treeP1 <- rpart(G3 ~ G1+ G2+failures+Medu+teacher.requests+Fedu+avatar.requests+school.1+traveltime+Walc+Dalc+studytime+Mjob.1+citystatus+age+goout+forum.posts, method="class", data=C1s, control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.0001))
+printcp(c.treeP1)
+post(c.treeP1, file = "treeP1.ps", title = "C1 tree1")
+C1ss$predict1 <- predict(c.treeP1, C1ss, type = "class")
+mismatch1 <- dplyr::filter(C1ss, G3 != predict1)
+
+c.treeP2 <- rpart(G3 ~ G1+ G2+teacher.requests+Medu+Fedu+Mjob.1+failures+famsup.1+customize.character+avatar.requests+levels.complete+absences+Dalc+Walc+schoolsup.1+health+studytime+time.in.session+traveltime, method="class", data=C2s, control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.0001))
+printcp(c.treeP2)
+post(c.treeP2, file = "treeP2.ps", title = "C2 tree2")
+C2ss$predict1 <- predict(c.treeP2, C2ss, type = "class")
+mismatch2 <- dplyr::filter(C2ss, G3 != predict1)

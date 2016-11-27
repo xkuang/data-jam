@@ -3,6 +3,11 @@ library(rpart)
 library(pvclust)
 library(corrplot)
 library(mclust)
+library(cluster)
+
+library(ggplot2)
+
+library(fpc)
 
 D1<- read.table("student-data.csv", sep = ",", header = TRUE)
 D2<- read.table("recode.csv", sep = ",", header = TRUE)
@@ -89,9 +94,6 @@ corrplot(COR, order="AOE", method="circle", tl.pos="lt", type="upper",
          addCoef.col="black", addCoefasPercent = TRUE,
          sig.level=0.50, insig = "blank")
 
-DE3 <- dplyr::select(DE1,G1,G2,G3,scorechange1, scorechange2,scorechange3,diffscorechange,schoolsup,age,Medu,Fedu,traveltime,studytime,failures,famrel,freetime,goout,Dalc,Walc,health,absences,forum.posts,avatar.requests,teacher.requests,customize.character)
-mydata <- DE3
-
 
 
 # Multiple Linear Regression Example 
@@ -102,8 +104,8 @@ fit4 <- lm(G3 ~ G1+G2+age+failures, data=mydata)
 fit5 <- lm(G3 ~ G1+G2+age+failures+absences, data=mydata)
 fit6 <- lm(G3 ~ G1+G2+age+failures+absences+traveltime, data=mydata)
 fit7 <- lm(G3 ~ G1+G2+age+failures+absences+traveltime+health, data=mydata)
-fit8 <- lm(G3 ~ G1+G2+age+failures+absences+traveltime+health+schoolsup, data=mydata)
-fit9 <- lm(G3 ~ G1+G2+age+failures+absences+traveltime+health+forum.posts, data=mydata)
+fit8 <- lm(G3 ~ G1+G2+age+failures+absences+traveltime+health+schoolsup.1, data=mydata)
+fit9 <- lm(G3 ~ G1+G2+failures+absences+Walc+avatar.requests+schoolsup.1+studytime+Fedu+teacher.requests, data=mydata)
 anova(fit1, fit2,fit3,fit4,fit5,fit6,fit7,fit8,fit9)
 #Analysis of Variance Table
 
@@ -114,43 +116,130 @@ anova(fit1, fit2,fit3,fit4,fit5,fit6,fit7,fit8,fit9)
 #Model 5: G3 ~ G1 + G2 + age + failures + absences
 #Model 6: G3 ~ G1 + G2 + age + failures + absences + traveltime
 #Model 7: G3 ~ G1 + G2 + age + failures + absences + traveltime + health
-#Model 8: G3 ~ G1 + G2 + age + failures + absences + traveltime + health + schoolsup
-#Model 9: G3 ~ G1 + G2 + age + failures + absences + traveltime + health + forum.posts
+#Model 8: G3 ~ G1 + G2 + age + failures + absences + traveltime + health + schoolsup.1
+#Model 9: G3 ~ G1 + G2 + failures + absences + Walc + avatar.requests +  schoolsup.1 + studytime + Fedu + teacher.requests
 #Res.Df    RSS Df Sum of Sq         F    Pr(>F)    
 #1    947 7821.3                                     
-#2    946  739.6  1    7081.7 9989.1547 < 2.2e-16 ***
-#  3    945  691.2  1      48.4   68.3189 4.707e-16 ***
-#  4    944  687.1  1       4.1    5.7340   0.01683 *  
-#  5    943  675.1  1      12.0   16.9602 4.153e-05 ***
-#  6    942  672.0  1       3.0    4.3009   0.03836 *  
-#  7    941  668.7  1       3.4    4.7753   0.02912 *  
-#  8    940  666.4  1       2.3    3.1782   0.07495 .  
-#9    940  668.5  0      -2.1                        
+#2    946  739.6  1    7081.7 9828.6963 < 2.2e-16 ***
+#  3    945  691.2  1      48.4   67.2215 7.929e-16 ***
+#  4    944  687.1  1       4.1    5.6419   0.01774 *  
+#  5    943  675.1  1      12.0   16.6877 4.783e-05 ***
+#  6    942  672.0  1       3.0    4.2318   0.03995 *  
+#  7    941  668.7  1       3.4    4.6986   0.03044 *  
+#  8    940  666.4  1       2.3    3.1272   0.07732 .  
+#9    938  675.8  2      -9.4                        
 #---
 #  Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
 Sample <- dplyr::sample_frac(DE1, 0.1, replace = TRUE)
-c.tree <- rpart(G3 ~ G1+G2+age+failures+absences+traveltime+health+schoolsup, method="class", data=Sample)
-post(c.tree, file = "tree.ps", title = "tree")
-DE1$predict1 <- predict(c.tree, DE1, type = "class")
-mismatch <- dplyr::filter(DE1, G3 != predict1)
+#based on regression
+c.tree1 <- rpart(G3 ~ G1 + G2 + age + failures + absences + traveltime + health + schoolsup.1, method="class", data=Sample,control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.001))
+post(c.tree1, file = "tree.ps", title = "tree")
+DE1$predict1 <- predict(c.tree1, DE1, type = "class")
+mismatchR <- dplyr::filter(DE1, G3 != predict1)
+
+#based on correlation
+Sample <- dplyr::sample_frac(DE1, 0.1, replace = TRUE)
+c.tree2 <- rpart(G3 ~ G1 + G2 + failures + absences + Walc + avatar.requests +  schoolsup.1 + studytime + Fedu + teacher.requests, method="class", data=Sample,control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.001))
+post(c.tree2, file = "tree.ps", title = "tree")
+DE1$predict2 <- predict(c.tree2, DE1, type = "class")
+mismatchC <- dplyr::filter(DE1, G3 != predict2)
+
+#based on clustering
+Sample <- dplyr::sample_frac(DE1, 0.1, replace = TRUE)
+c.tree3 <- rpart(G3 ~ G1 + G2 + age+ failures + absences + forum.posts + customize.character + Walc+ Fjob.1+ schoolsup.1 + studytime + Fedu + teacher.requests, method="class", data=Sample,control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.001))
+post(c.tree3, file = "tree.ps", title = "tree")
+DE1$predict3 <- predict(c.tree3, DE1, type = "class")
+mismatchK <- dplyr::filter(DE1, G3 != predict3)
 
 
+#based on clustering and PCA
+DE4 <- dplyr::select(DE1,G1,G2,scorechange1,age,Medu,Fedu,traveltime,studytime,failures,famrel,freetime,goout,Dalc,Walc,health,absences,forum.posts,levels.complete,avatar.requests,teacher.requests,customize.character,time.in.session,av.seconds.per.task,school.1,gender,citystatus,famsize.1,Pstatus.1,Mjob.1,Fjob.1,schoolsup.1,famsup.1)
 
+fit1 <- kmeans(mydata, 3)
+clusplot(mydata, fit1$cluster, color=TRUE, shade=TRUE,labels=2, lines=0)
+plotcluster(mydata, fit1$cluster)
+DE5 <- cbind(DE4, fit1$cluster)
 
+fit2 <- kmeans(mydata, 2)
+clusplot(mydata, fit2$cluster, color=TRUE, shade=TRUE,labels=2, lines=0)
+plotcluster(mydata, fit2$cluster)
+DE5 <- cbind(DE4, fit2$cluster)
 
-#assume that we do not know G3, select the numeric data + G1 G2 only to construct the data frame
-S1a <- dplyr::select(S1,G1,G2,age,Medu,Fedu,traveltime,studytime,failures,famrel,freetime,goout,Dalc,Walc,health,absences,forum.posts,levels.complete,avatar.requests,teacher.requests,customize.character,time.in.session,av.seconds.per.task)
-S1b <- dplyr::select(S2,G1,G2,age,Medu,Fedu,traveltime,studytime,failures,famrel,freetime,goout,Dalc,Walc,health,absences,forum.posts,levels.complete,avatar.requests,teacher.requests,customize.character,time.in.session,av.seconds.per.task)
+C1 <- dplyr::filter(DE3,fit2$cluster == 1)
+C2 <- dplyr::filter(DE3,fit2$cluster == 2)
 
-S1aa <- na.omit(S1a)
-S1aa <- scale(S1aa)
-mydata <-S1aa
+F1 <- dplyr::filter(DE3,fit1$cluster == 1)
+F2 <- dplyr::filter(DE3,fit1$cluster == 2)
+F3 <- dplyr::filter(DE3,fit1$cluster == 3)
 
-COR <- cor(mydata)
-corrplot(COR, order="AOE", method="circle", tl.pos="lt", type="upper",        
+mydata <- DE4
+# have PCA on the variables
+#for C1
+C1p <- scale(C1, center = TRUE)
+pca1 <- prcomp(C1p, scale = TRUE)
+#plot the Principle components
+pca1$sdev
+#To convert this into variance accounted for we can square it, these numbers are proportional to the eigenvalue
+pca1$sdev^2
+#A summary of our pca will give us the proportion of variance accounted for by each component
+summary(pca1)
+plot(pca1, type = "lines")
+#from this pca plot, it suggests that we can only keep 10 principle components for data
+#Now, create a data frame of the transformed data from your pca.
+C1a <- as.data.frame(pca1$x)
+C1b <- dplyr::select(C1a,1:10)
+C1b <- cbind(C1b, C1$G1,C1$G2)
+CORC1 <- cor(C1b)
+corrplot(CORC1, order="AOE", method="circle", tl.pos="lt", type="upper",        
          tl.col="black", tl.cex=0.6, tl.srt=45, 
          addCoef.col="black", addCoefasPercent = TRUE,
          sig.level=0.50, insig = "blank")
+pca1$rotation
+#Examine the eigenvectors, notice that they are a little difficult to interpret. It is much easier to make sense of them if we make them proportional within each component
+loadingsC1 <- abs(pca1$rotation) #abs() will make all eigenvectors positive
+
+#in each cluster, take 50% data to build prediction tree
+C1s <- dplyr::sample_frac(C1, 0.1, replace = TRUE)
+C2s <- dplyr::sample_frac(C2, 0.1, replace = TRUE)
+
+#build decision tree based on cluster (> 0.1)
+c.tree1 <- rpart(G3 ~ G1+ G2 +failures+avatar.requests+teacher.requests+Medu+Fedu+Walc+Dalc+studytime+school.1+traveltime+citystatus+Mjob+goout+forum.posts+age+absences, method="class", data=C1s, control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.0001))
+printcp(c.tree1)
+post(c.tree1, file = "tree1.ps", title = "C1 tree1")
+C1$predict1 <- predict(c.tree1, C1, type = "class")
+mismatch1 <- dplyr::filter(C1, G3 != predict1)
+
+#for C2
+C2p <- scale(C2, center = TRUE)
+pca2 <- prcomp(C2p, scale = TRUE)
+#plot the Principle components
+pca2$sdev
+#To convert this into variance accounted for we can square it, these numbers are proportional to the eigenvalue
+pca2$sdev^2
+#A summary of our pca will give us the proportion of variance accounted for by each component
+summary(pca2)
+plot(pca2, type = "lines")
+#from this pca plot, it suggests that we can only keep 10 principle components for data
+C2a <- as.data.frame(pca2$x)
+C2b <- dplyr::select(C2a,1:10)
+C2b <- cbind(C2b, C2$G1,C2$G2)
+CORC2 <- cor(C2b)
+corrplot(CORC2, order="AOE", method="circle", tl.pos="lt", type="upper",        
+         tl.col="black", tl.cex=0.6, tl.srt=45, 
+         addCoef.col="black", addCoefasPercent = TRUE,
+         sig.level=0.50, insig = "blank")
+
+#from the correlation plot, we can see that the PC4 is the best components (=-28/-17) correlated with grades G1 G2
+#take a close look at the PC4
+pca2$rotation
+#Examine the eigenvectors, notice that they are a little difficult to interpret. It is much easier to make sense of them if we make them proportional within each component
+loadingsC2 <- abs(pca2$rotation) #abs() will make all eigenvectors positive
+
+c.tree2 <- rpart(G3 ~ G1+ G2+teacher.requests+Medu+avatar.requests+Fedu+failures+Mjob.1+Dalc+levels.complete+absences+Walc+schoolsup.1+goout+studytime+Fjob.1+age, method="class", data=C2s, control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.0001))
+printcp(c.tree2)
+post(c.tree2, file = "tree2.ps", title = "C2 tree2")
+C2$predict1 <- predict(c.tree2, C2, type = "class")
+mismatch2 <- dplyr::filter(C2, G3 != predict1)
 
 

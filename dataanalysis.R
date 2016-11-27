@@ -4,9 +4,7 @@ library(pvclust)
 library(corrplot)
 library(mclust)
 library(cluster)
-
 library(ggplot2)
-
 library(fpc)
 
 D1<- read.table("student-data.csv", sep = ",", header = TRUE)
@@ -57,7 +55,7 @@ mydata <- DE2
 
 # Model Based Clustering
 fit <- Mclust(mydata)
-plot(fit) # plot results 
+#plot(fit) # plot results 
 summary(fit)
 
 #> summary(fit)
@@ -204,7 +202,7 @@ C1s <- dplyr::sample_frac(C1, 0.1, replace = TRUE)
 C2s <- dplyr::sample_frac(C2, 0.1, replace = TRUE)
 
 #build decision tree based on cluster (> 0.1)
-c.tree1 <- rpart(G3 ~ G1+ G2 +failures+avatar.requests+teacher.requests+Medu+Fedu+Walc+Dalc+studytime+school.1+traveltime+citystatus+Mjob+goout+forum.posts+age+absences, method="class", data=C1s, control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.0001))
+c.tree1 <- rpart(G3 ~ G1+ G2 teacher.requests+Medu+avatar.requests+Fedu+failures+Mjob.1+Dalc+levels.complete+absences, method="class", data=C1s, control=rpart.control(minsplit = 1, minbucket = 1, cp = 0.0001))
 printcp(c.tree1)
 post(c.tree1, file = "tree1.ps", title = "C1 tree1")
 C1$predict1 <- predict(c.tree1, C1, type = "class")
@@ -230,8 +228,6 @@ corrplot(CORC2, order="AOE", method="circle", tl.pos="lt", type="upper",
          addCoef.col="black", addCoefasPercent = TRUE,
          sig.level=0.50, insig = "blank")
 
-#from the correlation plot, we can see that the PC4 is the best components (=-28/-17) correlated with grades G1 G2
-#take a close look at the PC4
 pca2$rotation
 #Examine the eigenvectors, notice that they are a little difficult to interpret. It is much easier to make sense of them if we make them proportional within each component
 loadingsC2 <- abs(pca2$rotation) #abs() will make all eigenvectors positive
